@@ -1,5 +1,4 @@
 /*
- * This file only contains functions handling user input & output.
  * BSD 3-Clause License
  * 
  * Copyright (c) 2022, k4m1
