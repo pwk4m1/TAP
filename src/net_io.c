@@ -290,12 +290,11 @@ waitfor_any_readable(int sin, int sout)
 	tv.tv_usec = 0;
 
 	waiting = 1;
-	printf("Waiting...\n");
 	while (waiting) {
 		stat = select(sin+sout, &fds, 0, 0, &tv);
 		switch (stat) {
 		case(-1):
-			fprintf(stderr, "select() errno: %d\n", errno);
+			ERR("select() errored with errno: %d\n", errno);
 			waiting = 0;
 			break;
 		case (0):
@@ -305,18 +304,14 @@ waitfor_any_readable(int sin, int sout)
 			waiting = 0;
 		}
 	}
-	printf("Waited\n");
 	if (stat == -1) {
 		return stat;
 	}
-	printf("stat: %d\n", stat);
 	stat = 0;
 	if (FD_ISSET(sin, &fds)) {
-		printf("WAIT_DIR_IN set\n");
 		stat |= WAIT_DIR_IN;
 	}
 	if (FD_ISSET(sout, &fds)) {
-		printf("WAIT_DIR_OUT set\n");
 		stat |= WAIT_DIR_OUT;
 	}
 	if (!stat)
@@ -349,7 +344,6 @@ sink_a_and_b_forever(int sin, int sout, size_t tx_size,
 		return;
 	}
 	for (;;) {
-		printf("Loop\n");
 		memset(txbuf, 0, tx_size);
 
 		/* Wait for either direction to write */
@@ -364,7 +358,7 @@ sink_a_and_b_forever(int sin, int sout, size_t tx_size,
 			stat = rx(sout, tx_size, txbuf);
 		}
 		if (stat < 0) {
-			fprintf(stderr, "socket read operation failed\n");
+			ERR("tx failed\n");
 			goto end;
 		}
 		/* If callback, do it */
@@ -378,7 +372,7 @@ sink_a_and_b_forever(int sin, int sout, size_t tx_size,
 			stat = tx(sin, tx_size, txbuf);
 		}
 		if (stat < 0) {
-			fprintf(stderr, "socket write operation failed\n");
+			ERR("tx failed\n");
 			goto end;
 		}
 	}
