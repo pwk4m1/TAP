@@ -361,7 +361,7 @@ sink_a_and_b_forever(int sin, int sout, size_t tx_size,
 			stat = rx(sout, tx_size, txbuf);
 		}
 		if (stat <= 0) {
-			ERR("tx failed, socket disconnected?\n");
+			LOG("Peer disconnected\n");
 			goto end;
 		}
 		/* If callback, do it */
@@ -376,6 +376,7 @@ sink_a_and_b_forever(int sin, int sout, size_t tx_size,
 		}
 		if (stat < 0) {
 			ERR("tx failed\n");
+			LOG("Peer disconnected mid transmission?\n");
 			goto end;
 		}
 	}
@@ -389,10 +390,13 @@ end:
  * Start sink for specified source/destination pair with
  * fixed size transmit buffers
  *
+ * XXX: This is for testing only, should be rewritten in a way where
+ * multiprocessing happens / more than 1 connections at once are possible
+ *
  * Requires:
  * 	char *addrin 				- address to bind
  * 	short lport 				- port to listen to
- * 	char *addrout 				- address to forward inbound data to
+ * 	char *addrout 				- address to forward data to
  * 	short dport 				- port to send to
  * 	size_t tx_size 				- amount of bytes to transmit
  * 	void (*cb)(unsigned char*, size_t) 	- callback for interception
