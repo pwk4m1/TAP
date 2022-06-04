@@ -7,12 +7,12 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  * 
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
+ * 1. Redistributions of source code must retain the above copyright notice, 
+ *    this list of conditions and the following disclaimer.
  * 
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
+ * 2. Redistributions in binary form must reproduce the above copyright 
+ *    notice, this list of conditions and the following disclaimer in the 
+ *    documentation and/or other materials provided with the distribution.
  * 
  * 3. Neither the name of the copyright holder nor the names of its
  *    contributors may be used to endorse or promote products derived from
@@ -20,14 +20,16 @@
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+ * CONSEQUENTIA LDAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+ * INTERRUPTION) HOWEVE RCAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ * POSSIBILITY OF SUCH DAMAGE.
+ * 
  * 
  * Don't delete this time, mmkay?
  *
@@ -70,6 +72,7 @@
 #include <unistd.h>
 
 #include <log.h>
+#include <intercept_helpers.h>
 
 static int running = 1;
 
@@ -323,16 +326,16 @@ waitfor_any_readable(int sin, int sout)
  * Sink A <-> B forever/until connection is closed
  *
  * Requires:
- * 	int sin 			- client socket connected to us
- * 	int sout 			- dest. socket to relay to
- * 	size_t tx_size 			- transmission buffer size
- * 	void (*cb)(unsigned char*) 	- callback for interception
+ * 	int sin 				- client socket connected to us
+ * 	int sout 				- dest. socket to relay to
+ * 	size_t tx_size 				- transmission buffer size
+ * 	void (*cb)(unsigned char*, size_t) 	- callback for interception
  * Returns:
  * 	None
  */
 void
 sink_a_and_b_forever(int sin, int sout, size_t tx_size, 
-		void (*cb)(unsigned char *))
+		void (*cb)(unsigned char *, size_t))
 {
 	size_t stat;
 	int stat_dir;
@@ -363,7 +366,7 @@ sink_a_and_b_forever(int sin, int sout, size_t tx_size,
 		}
 		/* If callback, do it */
 		if (cb != 0) {
-			cb(txbuf);
+			cb(txbuf, tx_size);
 		}
 		/* Relay data */
 		if (stat_dir & WAIT_DIR_IN) {
@@ -387,18 +390,18 @@ end:
  * fixed size transmit buffers
  *
  * Requires:
- * 	char *addrin 			- address to bind
- * 	short lport 			- port to listen to
- * 	char *addrout 			- address to forward inbound data to
- * 	short dport 			- port to send to
- * 	size_t tx_size 			- amount of bytes to transmit
- * 	void (*cb)(unsigned char*) 	- callback for interception
+ * 	char *addrin 				- address to bind
+ * 	short lport 				- port to listen to
+ * 	char *addrout 				- address to forward inbound data to
+ * 	short dport 				- port to send to
+ * 	size_t tx_size 				- amount of bytes to transmit
+ * 	void (*cb)(unsigned char*, size_t) 	- callback for interception
  * Returns:
  * 	None
  */
 void
 start_sink(char *addrin, short lport, char *addrout, short dport, 
-		size_t tx_size, void (*cb)(unsigned char *))
+		size_t tx_size, void (*cb)(unsigned char *, size_t))
 {
 	struct sockaddr_in saddr_peer_in;
 	struct sockaddr_in saddr_peer_out;
@@ -487,20 +490,17 @@ end:
  * callback/intercepting functionality here for testcases 
  */
 void
-test_cb(unsigned char *buf)
+test_cb(unsigned char *buf, size_t buf_size)
 {
-	char tmp[9];
-	int i;
+	void *off;
 
-	memset(tmp, 0, 9);
-	for (i = 0; i < (strlen((char *)buf) / 8); i += 8) {
-		memcpy(tmp, buf+i, 8);
-		if (!strcmp(tmp, "POC_TEST")) {
-			strcpy(tmp, "FOO_BARR");
-			memcpy(buf+i, tmp, 8);
-		}
+	off = findseq(buf, "TEST", buf_size, strlen("TEST"));
+	if (off) {
+		LOG("TEST->LMAO");
+		replace_str_of_equal_size(buf, buf_size, strlen("TEST"),
+				(unsigned char *)&"TEST", 
+				(unsigned char *)&"LMAO");
 	}
-
 }
 
 /* TESTS END */
@@ -508,7 +508,7 @@ test_cb(unsigned char *buf)
 int
 main()
 {
-	void (*cb)(unsigned char*) = &test_cb;
+	void (*cb)(unsigned char*, size_t) = &test_cb;
 	//test_bind_wait_rx_tx();
 	start_sink("0.0.0.0", 1337, "127.0.0.1", 1338, 256, cb);
 	return -1;
