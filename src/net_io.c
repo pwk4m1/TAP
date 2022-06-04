@@ -360,8 +360,8 @@ sink_a_and_b_forever(int sin, int sout, size_t tx_size,
 		} else if (stat_dir & WAIT_DIR_OUT) { 
 			stat = rx(sout, tx_size, txbuf);
 		}
-		if (stat < 0) {
-			ERR("tx failed\n");
+		if (stat <= 0) {
+			ERR("tx failed, socket disconnected?\n");
 			goto end;
 		}
 		/* If callback, do it */
@@ -496,7 +496,6 @@ test_cb(unsigned char *buf, size_t buf_size)
 
 	off = findseq(buf, "TEST", buf_size, strlen("TEST"));
 	if (off) {
-		LOG("TEST->LMAO");
 		replace_str_of_equal_size(buf, buf_size, strlen("TEST"),
 				(unsigned char *)&"TEST", 
 				(unsigned char *)&"LMAO");
