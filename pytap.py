@@ -3,7 +3,6 @@ import argparse
 from socket import *
 import select
 import ssl
-import struct
 import string
 import sys
 import threading
