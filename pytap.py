@@ -276,7 +276,8 @@ class tap:
                 try:
                     b = input("")
                 except KeyboardInterrupt:
-                    self.quit()
+                    # Just return the data now,  user can ctrl-C again if they wish
+                    # 
                     return data
                 if (b == ""):
                     break
